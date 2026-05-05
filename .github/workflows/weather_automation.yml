@@ -1,0 +1,45 @@
+name: Weather & Kalshi Automation
+
+on:
+  schedule:
+    # Run at minute 0 past every hour
+    - cron: '0 * * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  update-data:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Update Hourly Weather Cache
+        run: python update_weather_cache.py
+        
+      - name: Update Kalshi Markets
+        run: python update_kalshi.py || echo "Kalshi update failed or script not found, continuing..."
+        
+      - name: Log 11 PM Predictions
+        run: |
+          HOUR=$(TZ='America/Chicago' date +%H)
+          if [ "$HOUR" == "23" ]; then
+            echo "It is 11 PM in Chicago. Running log_predictions.py..."
+            python -c "import log_predictions; log_predictions.fetch_and_log()" || echo "Prediction logging failed."
+          else
+            echo "Current Chicago hour is $HOUR. Skipping 11 PM log."
+          fi
+
+      - name: Commit and push changes
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add weather_cache.json predictions_log.json kalshi_*.json events.json || true
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Automated weather & market updates" && git push)
