@@ -122,7 +122,7 @@
         <div class="banner-header">
             <div class="banner-header-content">
                 <div style="text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 15px;">
-                    <h3 style="margin: 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--accent-color); font-weight: bold;">Consensus Forecast</h3>
+                    <h3 style="margin: 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--primary-color); font-weight: bold;">Consensus Forecast</h3>
                     <p style="margin: 5px 0 0 0; font-size: 0.65rem; color: rgba(255,255,255,0.6);">AVERAGE OF ALL LOADED PROVIDERS</p>
                 </div>
                 <div id="consensus-grid" style="display: flex; justify-content: space-around; gap: 10px;">
@@ -585,7 +585,7 @@
 
                 const dayEl = document.createElement('div');
                 dayEl.style.cssText = "text-align: center; flex: 1; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px;";
-                dayEl.innerHTML = `<div style="font-size: 0.7rem; color: var(--accent-color); font-weight: bold;">${i === 0 ? `TODAY (${dStr})` : d.toLocaleDateString([],{weekday:'short'}).toUpperCase()}</div>
+                dayEl.innerHTML = `<div style="font-size: 0.7rem; color: var(--primary-color); font-weight: bold;">${i === 0 ? `TODAY (${dStr})` : d.toLocaleDateString([],{weekday:'short'}).toUpperCase()}</div>
                                    <div style="font-size: 1.4rem; font-weight: bold;">${avg}°</div>
                                    <div style="font-size: 1.1rem; font-weight: bold; opacity: 0.8;">H: ${high}° L: ${low}°</div>`;
                 grid.appendChild(dayEl);
