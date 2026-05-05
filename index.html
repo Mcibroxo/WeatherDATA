@@ -1,0 +1,654 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Dashboard</title>
+    <!-- 1. EXTERNAL DEPENDENCIES -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #121212;
+            --text-color: #e0e0e0;
+            --banner-bg: #1e2a38;
+            --section-bg: #1e1e1e;
+            --card-bg: #2d2d2d;
+            --border-color: #444444;
+            --primary-color: #66b2ff;
+            --accent-color: #ff6b6b;
+            --scroll-thumb: #66b2ff;
+            --row-border: #444444;
+            --chart-grid: #444444;
+            --kalshi-chart-fill: #66b2ff;
+            --banner-text: #121212;
+        }
+
+        .om-model-btn {
+            background: #2d2d2d; color: var(--text-color); border: 1px solid var(--border-color); padding: 4px 8px; font-size: 0.75rem; border-radius: 4px; cursor: pointer; transition: 0.2s; font-family: inherit;
+        }
+        .om-model-btn.active {
+            background: var(--primary-color); color: #121212; border-color: var(--primary-color); font-weight: bold;
+        }
+        .om-model-btn:hover:not(.active) {
+            background: #444;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            transition: background-color 0.3s, color 0.3s;
+            margin: 0; padding: 20px;
+        }
+
+        .weather-suite-container {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            max-width: 1100px;
+            margin: auto;
+            color: var(--text-color);
+        }
+        .banner-header {
+            background: var(--banner-bg);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            margin-bottom: 25px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        .banner-header-content { flex-grow: 1; }
+        .provider-section {
+            margin-bottom: 40px;
+            padding: 15px;
+            background: var(--section-bg);
+            border-radius: 15px;
+        }
+        .provider-label {
+            font-size: 0.9rem;
+            font-weight: bold;
+            color: var(--primary-color);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 15px;
+            border-left: 4px solid var(--accent-color);
+            padding-left: 10px;
+        }
+        .dashboard-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+        .chart-box { flex: 1.8; min-width: 350px; padding: 15px; height: 400px; display: flex; flex-direction: column; position: relative; }
+        .list-box { flex: 1; min-width: 250px; display: flex; flex-direction: column; height: 400px; }
+        
+        .day-group-header {
+            background: var(--primary-color);
+            color: var(--banner-text);
+            padding: 8px 12px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            margin: 15px 0 10px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+        .day-group-header:first-child { margin-top: 0; }
+
+        .custom-scroll::-webkit-scrollbar { width: 6px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: var(--scroll-thumb); border-radius: 10px; }
+        
+        .hl-banner {
+            position: absolute; top: 10px; right: 10px; font-weight: 900; font-size: 0.9rem; 
+            color: var(--accent-color); background: var(--card-bg); 
+            padding: 5px 12px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.15); 
+            z-index: 10; border: 2px solid var(--accent-color); display: flex; gap: 15px; align-items: center;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="weather-suite-container">
+        
+        <!-- CONSENSUS BANNER -->
+        <div class="banner-header">
+            <div class="banner-header-content">
+                <div style="text-align: center; border-bottom: 1px solid rgba(255,255,255,0.1); padding-bottom: 10px; margin-bottom: 15px;">
+                    <h3 style="margin: 0; font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1.5px; color: var(--accent-color); font-weight: bold;">Consensus Forecast</h3>
+                    <p style="margin: 5px 0 0 0; font-size: 0.65rem; color: rgba(255,255,255,0.6);">AVERAGE OF ALL LOADED PROVIDERS</p>
+                </div>
+                <div id="consensus-grid" style="display: flex; justify-content: space-around; gap: 10px;">
+                    <p style="font-size: 0.8rem; opacity: 0.6;">Calculating...</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- KALSHI SECTION -->
+        <div class="provider-section">
+            <div class="provider-label" style="display: flex; justify-content: space-between; align-items: center;">
+                <div>Provider: Kalshi <span id="kalshi-market-label" style="font-size: 0.75rem; font-weight: normal; color: #777; margin-left: 8px;">(Market: Highest Temp Today @ Chicago Midway, IL)</span></div>
+                <div>
+                    <button onclick="toggleKalshiDay()" id="kalshi-toggle-btn" style="background: #d9534f; color: white; border: none; padding: 4px 10px; border-radius: 4px; cursor: pointer; font-size: 0.7rem; margin-right: 15px; font-weight: bold; text-transform: uppercase;">View Tomorrow</button>
+                    <span id="kalshi-timer" style="font-size: 0.75rem; font-weight: normal; color: #d9534f; opacity: 0.8;"></span>
+                </div>
+            </div>
+            <div class="dashboard-row">
+                <div class="card chart-box">
+                    <div style="flex-grow: 1; position: relative;"><canvas id="kalshiChart"></canvas></div>
+                </div>
+                <div class="card list-box">
+                    <div id="kalshi-content" class="custom-scroll" style="flex-grow: 1; overflow-y: auto; padding: 15px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- OPENWEATHER SECTION -->
+        <div class="provider-section">
+            <div class="provider-label">Provider: OpenWeather API <span style="font-size: 0.75rem; font-weight: normal; color: #777; margin-left: 8px;">(41.7856, -87.7527)</span></div>
+            <div class="dashboard-row">
+                <div class="card chart-box">
+                    <div style="flex-grow: 1; position: relative;"><canvas id="owmChart"></canvas></div>
+                </div>
+                <div class="card list-box">
+                    <div id="owm-content" class="custom-scroll" style="flex-grow: 1; overflow-y: auto; padding: 15px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NOAA SECTION -->
+        <div class="provider-section">
+            <div class="provider-label">Provider: NOAA (weather.gov) <span style="font-size: 0.75rem; font-weight: normal; color: #777; margin-left: 8px;">(41.7856, -87.7527)</span></div>
+            <div class="dashboard-row">
+                <div class="card chart-box">
+                    <div style="flex-grow: 1; position: relative;"><canvas id="noaaChart"></canvas></div>
+                </div>
+                <div class="card list-box">
+                    <div id="noaa-content" class="custom-scroll" style="flex-grow: 1; overflow-y: auto; padding: 15px;"></div>
+                </div>
+            </div>
+        </div>
+        <!-- OPEN-METEO SECTION -->
+        <div class="provider-section">
+            <div class="provider-label" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div><span id="om-title-label">Provider: Open-Meteo (ECMWF)</span> <span style="font-size: 0.75rem; font-weight: normal; color: var(--text-color); opacity: 0.7; margin-left: 8px;">(41.7856, -87.7527)</span></div>
+                <div style="display: flex; gap: 5px; flex-wrap: wrap;">
+                    <button class="om-model-btn active" data-model="ecmwf_ifs025" onclick="switchOMModel('ecmwf_ifs025')">ECMWF (Europe)</button>
+                    <button class="om-model-btn" data-model="icon_seamless" onclick="switchOMModel('icon_seamless')">ICON (Germany)</button>
+                    <button class="om-model-btn" data-model="gem_seamless" onclick="switchOMModel('gem_seamless')">GEM (Canada)</button>
+                </div>
+            </div>
+            <div class="dashboard-row">
+                <div class="card chart-box">
+                    <div style="flex-grow: 1; position: relative;"><canvas id="omChart"></canvas></div>
+                </div>
+                <div class="card list-box">
+                    <div id="om-content" class="custom-scroll" style="flex-grow: 1; overflow-y: auto; padding: 15px;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PREDICTIONS LOG SECTION -->
+        <div class="card" style="margin-bottom: 20px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; cursor: pointer;" onclick="toggleLogTable()">
+                <h3 style="margin: 0; font-size: 0.9rem; color: var(--accent-color); text-transform: uppercase;">11 PM Predictions Log</h3>
+                <span id="log-toggle-icon" style="font-size: 1.2rem;">+</span>
+            </div>
+            <div id="log-table-container" style="display: none; margin-top: 15px; overflow-x: auto;">
+                <table class="log-table" style="width: 100%; border-collapse: collapse; font-size: 0.8rem; text-align: center;">
+                    <thead>
+                        <tr style="background-color: #2d2d2d;">
+                            <th style="padding: 8px; border: 1px solid var(--border-color);">Date Predicted For</th>
+                            <th style="padding: 8px; border: 1px solid var(--border-color);">NOAA</th>
+                            <th style="padding: 8px; border: 1px solid var(--border-color);">OpenWeather</th>
+                            <th style="padding: 8px; border: 1px solid var(--border-color);">ECMWF</th>
+                            <th style="padding: 8px; border: 1px solid var(--border-color);">ICON</th>
+                            <th style="padding: 8px; border: 1px solid var(--border-color);">GEM</th>
+                            <th style="padding: 8px; border: 1px solid var(--border-color); color: var(--accent-color);">Consensus (H/L)</th>
+                        </tr>
+                    </thead>
+                    <tbody id="log-table-body">
+                        <!-- Populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- MAP -->
+        <div class="card" style="width: 100%; height: 350px;">
+            <iframe width="100%" height="100%" frameborder="0" src="https://maps.google.com/maps?q=Chicago%20Midway%20International%20Airport&t=m&z=3&ie=UTF8&iwloc=&output=embed"></iframe>
+        </div>
+    </div>
+
+    <script>
+    const LAT = "41.7856";
+    const LON = "-87.7527";
+    const CITY = "Chicago";
+    const API_KEY = 'ce15cbd2ded827cc3a4f8c0a7148f3ea'; 
+
+    window.updateWeather = async function() {
+        try {
+            const noaaPoint = await fetch(`https://api.weather.gov/points/${LAT},${LON}`).then(r => r.json());
+            const noaaRes = await fetch(noaaPoint.properties.forecastHourly).then(r => r.json());
+            const owmRes = await fetch(`https://api.openweathermap.org/data/2.5/forecast?lat=${LAT}&lon=${LON}&units=imperial&appid=${API_KEY}`).then(r => r.json());
+
+            const owmNormalized = owmRes.list.map(p => ({
+                time: new Date(p.dt * 1000),
+                temp: p.main.temp
+            }));
+
+            const noaaNormalized = noaaRes.properties.periods.map(p => ({
+                time: new Date(p.startTime),
+                temp: p.temperature
+            }));
+
+            window.cachedOwm = mergeAndSave('owmData', owmNormalized);
+            window.cachedNoaa = mergeAndSave('noaaData', noaaNormalized);
+
+            renderProviderData(window.cachedOwm, 'owmChart', 'owm-content');
+            renderProviderData(window.cachedNoaa, 'noaaChart', 'noaa-content');
+
+            await switchOMModel('ecmwf_ifs025');
+
+            await fetchAndRenderKalshi();
+
+        } catch (err) { console.error("Main weather fetch failed:", err); }
+    };
+
+    window.switchOMModel = async function(model) {
+        document.querySelectorAll('.om-model-btn').forEach(btn => {
+            btn.classList.remove('active');
+            if(btn.dataset.model === model) btn.classList.add('active');
+        });
+        
+        const displayTitle = model.split('_')[0].toUpperCase();
+        const labelTitle = document.getElementById('om-title-label');
+        if (labelTitle) labelTitle.innerText = "Provider: Open-Meteo (" + displayTitle + ")";
+
+        try {
+            const omRes = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${LAT}&longitude=${LON}&hourly=temperature_2m&temperature_unit=fahrenheit&timezone=auto&models=${model}`).then(r => r.json());
+
+            if (!omRes.hourly || !omRes.hourly.time) throw new Error("Invalid data unavailable.");
+
+            const tempKey = `temperature_2m_${model}`;
+            const omNormalized = omRes.hourly.time.map((timestamp, index) => {
+                let temp = null;
+                if (omRes.hourly[tempKey] !== undefined) temp = omRes.hourly[tempKey][index];
+                else if (omRes.hourly.temperature_2m !== undefined) temp = omRes.hourly.temperature_2m[index];
+                
+                return {
+                    time: new Date(timestamp),
+                    temp: temp
+                };
+            }).filter(p => p.temp !== null);
+            
+            window.cachedOM = mergeAndSave(`omData_${model}`, omNormalized);
+            renderProviderData(window.cachedOM, 'omChart', 'om-content');
+            
+            recalcConsensus();
+        } catch (e) {
+            console.error("Open-Meteo fetch failed for model " + model, e);
+            document.getElementById('om-content').innerHTML = `<div style="padding:15px; color:#d9534f;">Failed to load ${model.toUpperCase()} data.</div>`;
+        }
+    };
+
+    function recalcConsensus() {
+        const activeSources = [];
+        if (window.cachedNoaa) activeSources.push(window.cachedNoaa);
+        if (window.cachedOwm) activeSources.push(window.cachedOwm);
+        if (window.cachedOM) activeSources.push(window.cachedOM);
+        
+        if (activeSources.length > 0) {
+            renderConsensus(activeSources);
+        }
+    }
+
+    function mergeAndSave(storageKey, newData) {
+        let stored = [];
+        try {
+            stored = JSON.parse(localStorage.getItem(storageKey)) || [];
+            stored.forEach(p => p.time = new Date(p.time));
+        } catch(e) {}
+
+        const map = new Map();
+        stored.forEach(p => map.set(p.time.getTime(), p.temp));
+        newData.forEach(p => map.set(p.time.getTime(), p.temp));
+
+        let merged = Array.from(map.entries()).map(([timeMs, temp]) => ({
+            time: new Date(timeMs),
+            temp: temp
+        }));
+
+        merged.sort((a, b) => a.time - b.time);
+
+        const today = new Date();
+        today.setHours(0,0,0,0);
+        merged = merged.filter(p => p.time >= today);
+
+        localStorage.setItem(storageKey, JSON.stringify(merged));
+        return merged;
+    }
+
+    function renderProviderData(normalizedData, chartId, listId) {
+        const actualTodayStr = new Date().toLocaleDateString();
+        // 1. DATA GROUPING
+        const days = {};
+        normalizedData.forEach((p) => {
+            const date = p.time.toLocaleDateString();
+            if (!days[date]) days[date] = [];
+            days[date].push(p);
+        });
+
+        let dateKeys = Object.keys(days);
+        const todayIndex = dateKeys.indexOf(actualTodayStr);
+        if (todayIndex > 0) {
+            dateKeys = dateKeys.slice(todayIndex); // Remove past days
+        }
+
+        const validPeriods = [];
+        dateKeys.forEach(d => validPeriods.push(...days[d]));
+
+        // 2. RENDER CHART & DAILY EXTREMES (Interactive)
+        const todayTemps = days[dateKeys[0]] ? days[dateKeys[0]].map(p => p.temp) : [];
+        const todayHigh = todayTemps.length > 0 ? Math.round(Math.max(...todayTemps)) : '--';
+        const todayLow = todayTemps.length > 0 ? Math.round(Math.min(...todayTemps)) : '--';
+
+        const tmrwTemps = days[dateKeys[1]] ? days[dateKeys[1]].map(p => p.temp) : [];
+        const tmrwHigh = tmrwTemps.length > 0 ? Math.round(Math.max(...tmrwTemps)) : '--';
+        const tmrwLow = tmrwTemps.length > 0 ? Math.round(Math.min(...tmrwTemps)) : '--';
+
+        const chartCont = document.getElementById(chartId).parentElement;
+        let existingBanner = chartCont.querySelector('.hl-banner');
+        if (existingBanner) existingBanner.remove();
+
+        const style = getComputedStyle(document.body);
+        const pColor = style.getPropertyValue('--primary-color').trim() || '#003366';
+        const aColor = style.getPropertyValue('--accent-color').trim() || '#d9534f';
+        const tColor = style.getPropertyValue('--text-color').trim() || '#333';
+        const gridColor = style.getPropertyValue('--chart-grid').trim() || '#e5e5e5';
+        const rowBorder = style.getPropertyValue('--row-border').trim() || '#eee';
+
+        const hlBanner = document.createElement('div');
+        hlBanner.className = 'hl-banner';
+        hlBanner.innerHTML = `<span>TODAY: H ${todayHigh}° | L ${todayLow}°</span> <span style="opacity: 0.75; border-left: 2px solid ${aColor}; padding-left: 15px;">TMRW: H ${tmrwHigh}° | L ${tmrwLow}°</span>`;
+        chartCont.appendChild(hlBanner);
+
+        const chartData = validPeriods.slice(0, 48); // expanded from 32 to show more hourly data
+        const ctx = document.getElementById(chartId).getContext('2d');
+        let status = Chart.getChart(chartId);
+        if (status) status.destroy();
+
+        const bgTint = 'rgba(102, 178, 255, 0.1)';
+
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: chartData.map(p => p.time.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})),
+                datasets: [{
+                    data: chartData.map(p => p.temp),
+                    borderColor: pColor,
+                    backgroundColor: bgTint,
+                    fill: true, tension: 0.4, pointRadius: 4, pointHoverRadius: 8, pointHoverBackgroundColor: aColor
+                }]
+            },
+            options: { 
+                responsive: true, 
+                maintainAspectRatio: false, 
+                interaction: { mode: 'index', intersect: false },
+                plugins: { 
+                    legend: { display: false },
+                    tooltip: { backgroundColor: pColor, titleFont: { size: 14 }, bodyFont: { size: 14 }, padding: 12 }
+                },
+                scales: { 
+                    y: { 
+                        grid: { color: gridColor },
+                        ticks: { color: tColor, callback: v => Math.round(v) + '°' } 
+                    },
+                    x: { 
+                        grid: { color: gridColor },
+                        ticks: { color: tColor, maxTicksLimit: 6 } 
+                    }
+                }
+            }
+        });
+
+        // 3. RENDER GROUPED LIST
+        const listCont = document.getElementById(listId);
+        listCont.innerHTML = "";
+        dateKeys.slice(0, 4).forEach((dateStr) => {
+            const dayTemps = days[dateStr].map(p => p.temp);
+            const high = Math.round(Math.max(...dayTemps));
+            const low = Math.round(Math.min(...dayTemps));
+            
+            const header = document.createElement('div');
+            header.className = 'day-group-header';
+            const isToday = dateStr === actualTodayStr;
+            const displayTitle = isToday ? `Today (${dateStr})` : dateStr;
+            header.innerHTML = `<span>${displayTitle}</span><span>H: ${high}° L: ${low}°</span>`;
+            listCont.appendChild(header);
+
+            days[dateStr].forEach(p => {
+                const time = p.time;
+                const temp = Math.round(p.temp);
+                const row = document.createElement('div');
+                row.style.cssText = `display:flex; justify-content:space-between; font-size:0.75rem; border-bottom:1px solid ${rowBorder}; padding:8px 5px;`;
+                row.innerHTML = `<span>${time.toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</span><strong>${temp}°F</strong>`;
+                listCont.appendChild(row);
+            });
+        });
+    }
+
+    function renderKalshiData(markets, chartId, listId) {
+        markets.sort((a,b) => {
+            const numA = parseInt((a.subtitle.match(/\d+/) || [0])[0]);
+            const numB = parseInt((b.subtitle.match(/\d+/) || [0])[0]);
+            return numA - numB;
+        });
+
+        const labels = markets.map(m => m.subtitle.replace(/[^\x20-\x7E]/g, '°').replace(/°+/g, '°'));
+        const dataPoints = markets.map(m => Math.round(parseFloat(m.yes_bid_dollars || m.last_price_dollars || 0) * 100));
+
+        const getProbColor = (prob) => {
+            // Interpolate between Grey rgb(136,136,136) and Red rgb(255,107,107)
+            const r = Math.round(136 + ((255 - 136) * (prob / 100)));
+            const g = Math.round(136 + ((107 - 136) * (prob / 100)));
+            const b = Math.round(136 + ((107 - 136) * (prob / 100)));
+            return `rgb(${r}, ${g}, ${b})`;
+        };
+        const bgColors = dataPoints.map(getProbColor);
+
+        const style = getComputedStyle(document.body);
+        const tColor = style.getPropertyValue('--text-color').trim() || '#333';
+        const gridColor = style.getPropertyValue('--chart-grid').trim() || '#e5e5e5';
+        const kFill = style.getPropertyValue('--kalshi-chart-fill').trim() || '#66b2ff';
+        const rowBorder = style.getPropertyValue('--row-border').trim() || '#eee';
+
+        const ctx = document.getElementById(chartId).getContext('2d');
+        let status = Chart.getChart(chartId);
+        if (status) status.destroy();
+
+        new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    data: dataPoints,
+                    backgroundColor: kFill,
+                    borderColor: kFill,
+                    borderWidth: 1,
+                    borderRadius: 4
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: (ctx) => `Probability: ${ctx.raw}%`
+                        }
+                    }
+                },
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        max: 100,
+                        grid: { color: gridColor },
+                        ticks: { color: tColor, callback: v => v + '%' }
+                    },
+                    x: {
+                        grid: { color: gridColor },
+                        ticks: { color: tColor }
+                    }
+                }
+            }
+        });
+
+        // LIST RENDERING
+        const listCont = document.getElementById(listId);
+        listCont.innerHTML = "";
+        
+        const header = document.createElement('div');
+        header.className = 'day-group-header';
+        header.innerHTML = `<span>Condition (High Temp)</span><span>Current Prob.</span>`;
+        listCont.appendChild(header);
+
+        markets.forEach(m => {
+            const prob = Math.round(parseFloat(m.yes_bid_dollars || m.last_price_dollars || 0) * 100);
+            const row = document.createElement('div');
+            row.style.cssText = `display:flex; justify-content:space-between; font-size:0.85rem; border-bottom:1px solid ${rowBorder}; padding:10px 5px;`;
+            row.innerHTML = `
+                <span>${m.subtitle.replace(/[^\x20-\x7E]/g, '°').replace(/°+/g, '°')}</span>
+                <strong style="color: ${getProbColor(prob)};">${prob}%</strong>
+            `;
+            listCont.appendChild(row);
+        });
+    }
+
+    let currentKalshiDay = 'today';
+    
+    window.toggleKalshiDay = async function() {
+        currentKalshiDay = currentKalshiDay === 'today' ? 'tomorrow' : 'today';
+        document.getElementById('kalshi-toggle-btn').innerText = currentKalshiDay === 'today' ? 'View Tomorrow' : 'View Today';
+        document.getElementById('kalshi-market-label').innerText = currentKalshiDay === 'today' ? '(Market: Highest Temp Today @ Chicago Midway, IL)' : '(Market: Highest Temp Tomorrow @ Chicago Midway, IL)';
+        await fetchAndRenderKalshi();
+    }
+
+    async function fetchAndRenderKalshi() {
+        try {
+            const file = currentKalshiDay === 'today' ? './kalshi_today.json' : './kalshi_tomorrow.json';
+            const kalshiRaw = await fetch(file);
+            const kalshiRes = await kalshiRaw.json();
+            
+            const lastModified = kalshiRaw.headers.get('Last-Modified');
+            const updateText = lastModified ? new Date(lastModified).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            const timerSpan = document.getElementById('kalshi-timer');
+            if(timerSpan) timerSpan.textContent = "Updated: " + updateText;
+
+            if (kalshiRes && kalshiRes.markets) {
+                renderKalshiData(kalshiRes.markets, 'kalshiChart', 'kalshi-content');
+            }
+        } catch (kalshiErr) {
+            console.error("Kalshi fetch failed:", kalshiErr);
+            document.getElementById('kalshi-content').innerHTML = `<div style="padding: 15px; color: #d9534f; font-size: 0.85rem;">Failed to load local Kalshi data for ${currentKalshiDay}. Make sure the update_kalshi.py script is running.</div>`;
+        }
+    }
+
+    function renderConsensus(datasets) {
+        const grid = document.getElementById('consensus-grid');
+        grid.innerHTML = "";
+        [0, 1, 2].forEach(i => {
+            const d = new Date(); d.setDate(d.getDate() + i);
+            const dStr = d.toLocaleDateString();
+            
+            const dailyTempsPerSource = datasets.map(dataset => {
+                return dataset.filter(p => p.time.toLocaleDateString() === dStr).map(p => p.temp);
+            }).filter(temps => temps.length > 0);
+            
+            if (dailyTempsPerSource.length > 0) {
+                const maxes = dailyTempsPerSource.map(temps => Math.max(...temps));
+                const high = Math.round(maxes.reduce((a,b)=>a+b, 0) / maxes.length);
+                
+                const mins = dailyTempsPerSource.map(temps => Math.min(...temps));
+                const low = Math.round(mins.reduce((a,b)=>a+b, 0) / mins.length);
+                
+                const avgs = dailyTempsPerSource.map(temps => temps.reduce((a,b)=>a+b, 0) / temps.length);
+                const avg = Math.round(avgs.reduce((a,b)=>a+b, 0) / avgs.length);
+
+                const dayEl = document.createElement('div');
+                dayEl.style.cssText = "text-align: center; flex: 1; padding: 10px; background: rgba(255,255,255,0.05); border-radius: 8px;";
+                dayEl.innerHTML = `<div style="font-size: 0.7rem; color: var(--accent-color); font-weight: bold;">${i === 0 ? `TODAY (${dStr})` : d.toLocaleDateString([],{weekday:'short'}).toUpperCase()}</div>
+                                   <div style="font-size: 1.4rem; font-weight: bold;">${avg}°</div>
+                                   <div style="font-size: 1.1rem; font-weight: bold; opacity: 0.8;">H: ${high}° L: ${low}°</div>`;
+                grid.appendChild(dayEl);
+            }
+        });
+    }
+
+    window.toggleLogTable = function() {
+        const container = document.getElementById('log-table-container');
+        const icon = document.getElementById('log-toggle-icon');
+        if (container.style.display === 'none') {
+            container.style.display = 'block';
+            icon.innerText = '-';
+            fetchAndRenderLog();
+        } else {
+            container.style.display = 'none';
+            icon.innerText = '+';
+        }
+    };
+
+    window.fetchAndRenderLog = async function() {
+        try {
+            const response = await fetch('predictions_log.json?t=' + Date.now());
+            if (!response.ok) throw new Error("Log file not found yet.");
+            const logs = await response.json();
+            
+            const tbody = document.getElementById('log-table-body');
+            tbody.innerHTML = '';
+            
+            [...logs].reverse().forEach(log => {
+                const tr = document.createElement('tr');
+                
+                const p = log.providers || {};
+                const noaa = p.NOAA ? `${p.NOAA.high}° / ${p.NOAA.low}°` : 'N/A';
+                const owm = p.OpenWeather ? `${p.OpenWeather.high}° / ${p.OpenWeather.low}°` : 'N/A';
+                const ecmwf = p.ECMWF ? `${p.ECMWF.high}° / ${p.ECMWF.low}°` : 'N/A';
+                const icon = p.ICON ? `${p.ICON.high}° / ${p.ICON.low}°` : 'N/A';
+                const gem = p.GEM ? `${p.GEM.high}° / ${p.GEM.low}°` : 'N/A';
+                
+                // Backwards compatibility for older logs
+                const omFallback = p['Open-Meteo'] ? `${p['Open-Meteo'].high}° / ${p['Open-Meteo'].low}°` : 'N/A';
+                const displayEcmwf = ecmwf !== 'N/A' ? ecmwf : omFallback;
+
+                const cons = p.Consensus ? `${p.Consensus.high}° / ${p.Consensus.low}°` : 'N/A';
+                
+                tr.innerHTML = `
+                    <td style="padding: 8px; border: 1px solid var(--border-color);">${log.date_predicted_for}</td>
+                    <td style="padding: 8px; border: 1px solid var(--border-color);">${noaa}</td>
+                    <td style="padding: 8px; border: 1px solid var(--border-color);">${owm}</td>
+                    <td style="padding: 8px; border: 1px solid var(--border-color);">${displayEcmwf}</td>
+                    <td style="padding: 8px; border: 1px solid var(--border-color);">${icon}</td>
+                    <td style="padding: 8px; border: 1px solid var(--border-color);">${gem}</td>
+                    <td style="padding: 8px; border: 1px solid var(--border-color); color: var(--accent-color); font-weight: bold;">${cons}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+            
+        } catch (e) {
+            document.getElementById('log-table-body').innerHTML = `<tr><td colspan="5" style="padding:15px; opacity:0.6;">No prediction logs found yet. The python script needs to log data first.</td></tr>`;
+        }
+    };
+
+    updateWeather();
+    </script>
+</body>
+</html>

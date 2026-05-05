@@ -1,0 +1,32 @@
+[
+    {
+        "date_predicted_for": "2026-05-05",
+        "logged_at": "2026-05-04T21:39:47.290065",
+        "providers": {
+            "NOAA": {
+                "high": 60,
+                "low": 48
+            },
+            "OpenWeather": {
+                "high": 61.38,
+                "low": 48.72
+            },
+            "ECMWF": {
+                "high": 60.8,
+                "low": 48.7
+            },
+            "ICON": {
+                "high": 60.8,
+                "low": 48.6
+            },
+            "GEM": {
+                "high": 59.5,
+                "low": 49.0
+            },
+            "Consensus": {
+                "high": 60.5,
+                "low": 48.6
+            }
+        }
+    }
+]
