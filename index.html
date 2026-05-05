@@ -575,7 +575,7 @@
     async function fetchAndRenderKalshi() {
         try {
             const file = currentKalshiDay === 'today' ? './kalshi_today.json' : './kalshi_tomorrow.json';
-            const kalshiRaw = await fetch(file);
+            const kalshiRaw = await fetch(file + '?t=' + Date.now());
             const kalshiRes = await kalshiRaw.json();
             
             const lastModified = kalshiRaw.headers.get('Last-Modified');
