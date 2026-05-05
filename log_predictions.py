@@ -9,8 +9,10 @@ LON = "-87.7527"
 API_KEY = "ce15cbd2ded827cc3a4f8c0a7148f3ea" # OpenWeather API Key
 LOG_FILE = "predictions_log.json"
 
+from zoneinfo import ZoneInfo
+
 def fetch_and_log():
-    today = datetime.datetime.now()
+    today = datetime.datetime.now(ZoneInfo("America/Chicago"))
     tomorrow = (today + datetime.timedelta(days=1)).date()
     tomorrow_str = tomorrow.strftime("%Y-%m-%d")
     
@@ -120,7 +122,7 @@ if __name__ == "__main__":
     
     try:
         while True:
-            now = datetime.datetime.now()
+            now = datetime.datetime.now(ZoneInfo("America/Chicago"))
             # Run if it's 11 PM and we haven't logged yet today
             if now.hour == 23 and now.date() != last_logged_date:
                 fetch_and_log()

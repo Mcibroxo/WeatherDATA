@@ -6,10 +6,12 @@ import datetime
 
 INTERVAL_MINUTES = 10
 
+from zoneinfo import ZoneInfo
+
 def get_kalshi_tickers():
     # Automatically generate the ticker string based on the current date
     # Format example: KXHIGHCHI-26MAY04 (YYMMMdd)
-    today = datetime.date.today()
+    today = datetime.datetime.now(ZoneInfo("America/Chicago")).date()
     tomorrow = today + datetime.timedelta(days=1)
     
     today_str = today.strftime("%y%b%d").upper()

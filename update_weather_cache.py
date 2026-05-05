@@ -64,8 +64,12 @@ def fetch_and_cache():
         
         for p in stored + new_data:
             t = p['time']
-            if not t.endswith('Z') and '+' not in t: t += 'Z'
-            dt = datetime.datetime.fromisoformat(t.replace('Z', '+00:00'))
+            if t.endswith('Z'):
+                t = t.replace('Z', '+00:00')
+            
+            dt = datetime.datetime.fromisoformat(t)
+            if dt.tzinfo is None:
+                dt = dt.replace(tzinfo=datetime.timezone.utc)
             merged[dt.timestamp()] = p['temp']
             
         cutoff = datetime.datetime.now(datetime.timezone.utc).timestamp() - (36 * 3600) # Keep 36 hours
